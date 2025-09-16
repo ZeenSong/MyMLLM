@@ -45,6 +45,8 @@
 * 针对旧配置默认写入 `./model/` 的情况，训练脚本会自动重定向输出到 `checkpoints/geoformer_pretrain`，并允许通过 `--output-dir` 明确指定目录。
 * 使用命令 `python tools/train_geoformer.py --max-steps 1 --limit-train-pairs 4 --limit-eval-samples 2 --eval-steps 1 --disable-wandb --per-device-train-batch-size 1 --per-device-eval-batch-size 1 --num-train-epochs 1 --output-dir checkpoints/geoformer_pretrain_smoke` 成功跑通 1 step 训练 + 2 step 评估，确认 Trainer 链路正常。
 * 新增 `tools/run_geoformer_smoke.sh`，封装上述冒烟流程，可直接执行快速验证；训练与评估 loss 正常打印，长跑时去掉限制参数即可。
+* 规划并搭建 Geoformer→SFT 自动标注链路：`src/data/sft_sampler.py` 提供随机采样与统计封装，`tools/build_sft_dataset.py` 输出具备多任务（预测+诊断）对话的 JSONL。
+* 自动标注流程：历史窗口随机抽取可变长度片段，计算温度/风应力/Nino 指数统计，并随机生成“预测未来趋势”或“回顾历史特征”单任务中文问答；输出为 ShareGPT 样式 JSON，用户消息包含 `<geoformer>` 占位符，配套保存 `.npz` 特征文件（含历史+未来张量）以供 Geoformer 编码；示例命令 `python tools/build_sft_dataset.py --num-samples 32 --seed 42` 会在 `data/sft_raw/` 产出 `geoformer_sft.json` 及 `features/` 目录。
 
 ## 下一步建议（待执行）
 

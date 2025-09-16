@@ -5,11 +5,11 @@ __pycache__/
 .env
 configs/*.json
 !configs/*.template.json
-checkpoints/
-data/
-dataset/
-third_party/
-archive/
-wandb/
+/checkpoints/
+/data/
+/dataset/
+/third_party/
+/archive/
+/wandb/
 meta.json
 question_templates.json
