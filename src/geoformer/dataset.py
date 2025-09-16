@@ -3,7 +3,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 import xarray as xr
-from typing import Tuple, List, Dict, Optional
+from pathlib import Path
+from typing import Tuple, List, Dict, Optional, Sequence
 from dataclasses import dataclass
 
 # ------------------ 工具 ------------------ #
@@ -403,3 +404,39 @@ class GeoformerCollator:
             "predictor": torch.from_numpy(x).to(dtype),
             "labels":    torch.from_numpy(y).to(dtype),
         }
+
+
+class GeoformerFeatureDataset(Dataset):
+    """读取预先导出的 Geoformer 特征 (`.npz`) 并返回 (history, future) 张量。"""
+
+    def __init__(self, feature_files: Sequence[str | Path]):
+        if not feature_files:
+            raise ValueError("feature_files must not be empty")
+        self.feature_files = [Path(p) for p in feature_files]
+        for path in self.feature_files:
+            if not path.exists():
+                raise FileNotFoundError(f"Feature file not found: {path}")
+
+    def __len__(self) -> int:
+        return len(self.feature_files)
+
+    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
+        path = self.feature_files[idx]
+        with np.load(path, allow_pickle=False) as data:
+            history = data["history"].astype(np.float32)
+            future = data["future"].astype(np.float32)
+
+        if history.ndim != 4 or future.ndim != 4:
+            raise ValueError(
+                f"Invalid feature shape in {path}: history {history.shape}, future {future.shape}"
+            )
+        return history, future
+
+
+def list_geoformer_feature_files(root: str | Path, suffix: str = ".npz") -> List[Path]:
+    root_path = Path(root)
+    if root_path.is_file():
+        return [root_path]
+    if not root_path.exists():
+        raise FileNotFoundError(f"Feature directory not found: {root_path}")
+    return sorted(p for p in root_path.rglob(f"*{suffix}") if p.is_file())
